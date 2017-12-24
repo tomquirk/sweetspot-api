@@ -10,4 +10,4 @@ const app = express()
 app.get('/v1/addresses', addresses.get)
 app.get('/v1/nearby', nearby.get)
 
-app.listen(3000, () => console.log('Example app listening on port 3000!'))
+app.listen(3000, () => console.log('sweetspot-api --- listening on port 3000!'))
