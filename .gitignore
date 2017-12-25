@@ -1,3 +1,5 @@
 node_modules
 local_settings*
 .vscode
+compare.json
+report.csv

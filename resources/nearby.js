@@ -1,8 +1,9 @@
-const axios = require('axios');
+const axios = require('axios')
 
 const settings = require('../local_settings')
-const GOOGLE_PLACES_URL = `https://maps.googleapis.com/maps/api/place/nearbysearch/json`
-const GOOGLE_GEOCODE_URL = `https://maps.googleapis.com/maps/api/geocode/json`
+
+const GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+const GOOGLE_GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json'
 
 function geocode(address) {
   const params = {
@@ -13,15 +14,13 @@ function geocode(address) {
 }
 
 function getSingleNearby(address, options) {
-  return new Promise((resolve, reject) => {
-    console.log(address)
-    geocode(address).then((geo_resp) => {
-      const geoData = geo_resp.data.results[0]
-      console.log(geoData)
+  return new Promise((resolve) => {
+    geocode(address).then((geoResp) => {
+      const geoData = geoResp.data.results[0]
       const originLocation = {
         lat: geoData.geometry.location.lat,
         lng: geoData.geometry.location.lng,
-        address: address,
+        address,
       }
 
       const params = {
@@ -31,10 +30,10 @@ function getSingleNearby(address, options) {
         radius: options.radius,
       }
 
-      return axios.get(GOOGLE_PLACES_URL, { params }).then((places_resp) => {
+      return axios.get(GOOGLE_PLACES_URL, { params }).then((placesResp) => {
         const data = {
           origin_location: originLocation,
-          results: places_resp.data.results
+          results: placesResp.data.results,
         }
 
         return resolve(data)
@@ -43,31 +42,36 @@ function getSingleNearby(address, options) {
   })
 }
 
-function getNearby(req, res) {
-  const origins = req.query.origins.split("|")
-  const promises = origins.map(address => {
-    const options = {
-      radius: req.query.radius,
-      keyword: req.query.keyword,
-    }
-    return getSingleNearby(address, options)
-  })
-
-  Promise.all(promises).then((response) => {
-    const data = response.map(d => {
-      return {
-        origin_location: d.origin_location,
-        destinations: d.results.map((dest) => {
-          return {
-            // TODO add more stuff here
-            name: dest.name
-          }
-        }),
+function nearby(origins, radius, keyword) {
+  return new Promise((resolve) => {
+    const promises = origins.map((address) => {
+      const options = {
+        radius,
+        keyword,
       }
+      return getSingleNearby(address, options)
     })
 
-    res.send(data)
+    Promise.all(promises).then((response) => {
+      const data = response.map(d => (
+        {
+          origin_location: d.origin_location,
+          destinations: d.results.map(dest => (
+            {
+              // TODO add more stuff here
+              name: dest.name,
+            }
+          )),
+        }
+      ))
+
+      resolve(data)
+    })
   })
+}
+
+function getNearby(req, res) {
+  nearby(req.query.origins.split('|'), req.query.radius, req.query.keyword).then(data => res.send(data))
 }
 
 module.exports = {
